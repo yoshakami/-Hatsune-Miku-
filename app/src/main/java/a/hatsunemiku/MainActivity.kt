@@ -5,11 +5,8 @@ import android.app.Activity
 import android.content.Intent
 import android.media.AudioAttributes
 import android.media.MediaPlayer
-import android.net.Uri
 import android.os.Bundle
-import android.provider.DocumentsContract
 import android.util.Log
-import android.view.View
 import android.widget.Button
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,27 +17,32 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import androidx.core.app.ActivityCompat.startActivityForResult
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContent {
-            HatsuneMikuTheme {
-                // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize(),
-                    color = MaterialTheme.colorScheme.background
-                ) {
-
-                    // initialize Uri here
-
-                }
+        // setContent { HatsuneMikuApp() }
+        setContentView(R.layout.activity_main) // Set your traditional XML layout
+        findViewById<Button>(R.id.video1_button)
+            .setOnClickListener {
+                Log.d("BUTTONS", "User tapped the Supabutton")
+                PickVideo(R.id.video1_button)
             }
+    }
+}
+
+@Composable
+fun HatsuneMikuApp() {
+    HatsuneMikuTheme {
+        Surface(
+            modifier = Modifier.fillMaxSize(),
+            color = MaterialTheme.colorScheme.background
+        ) {
+            // Your Composable UI elements go here
         }
     }
 }
+
 
 @Composable
 fun Greeting(name: String, modifier: Modifier = Modifier) {
@@ -64,10 +66,7 @@ fun LaunchVideo(modifier: Int)
     }
     mediaPlayer.start() // no need to call prepare(); create() does that for you
     //Greeting("Android")
-    /* findViewById<Button>(R.id.video1_button)
-                    .setOnClickListener {
-                        Log.d("BUTTONS", "User tapped the Supabutton")
-                        PickVideo(R.id.video1_button)
+    /*
                     }*/
 
 }

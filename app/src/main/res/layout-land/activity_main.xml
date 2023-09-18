@@ -4,34 +4,50 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:orientation="vertical"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#420099">
 
     <Button
         android:id="@+id/video1_button"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
+        android:layout_width="127dp"
+        android:layout_height="240dp"
         android:layout_margin="5dp"
-        android:layout_x="0dp"
+        android:layout_x="240dp"
         android:layout_y="0dp"
-        android:drawableStart="@drawable/au1"
-        android:drawablePadding="4dp"
-        android:drawableTint="#ff0000"
-        android:text="Pick Video 1" />
+        android:background="#20007f"
+        android:text="Pick Video 1"
+        android:textColor="@color/white"
+        android:visibility="visible"
+        tools:visibility="visible" />
 
     <Switch
         android:id="@+id/video1_switch"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_x="106dp"
-        android:layout_y="288dp"
-        android:text="Hatsune Miku" />
+        android:layout_width="186dp"
+        android:layout_height="89dp"
+        android:layout_x="210dp"
+        android:layout_y="256dp"
+        android:text="Hatsune Miku"
+        android:textColor="@color/white"
+        android:visibility="visible" />
 
     <TextView
         android:id="@+id/video1_hour"
+        android:layout_width="187dp"
+        android:layout_height="83dp"
+        android:layout_x="0dp"
+        android:layout_y="256dp"
+        android:gravity="center"
+        android:text="07:03"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:visibility="visible" />
+
+    <ImageView
+        android:id="@+id/imageView2"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_x="41dp"
-        android:layout_y="291dp"
-        android:text="07:03" />
+        android:layout_x="0dp"
+        android:layout_y="0dp"
+        android:src="@mipmap/ic_channel_foreground" />
 
 </AbsoluteLayout>
