@@ -26,7 +26,7 @@ class MainActivity : ComponentActivity() {
         findViewById<Button>(R.id.video1_button)
             .setOnClickListener {
                 Log.d("BUTTONS", "User tapped the Supabutton")
-                PickVideo(R.id.video1_button)
+                PickVideo(R.id.video1_button, Ac)
             }
     }
 }
@@ -71,27 +71,7 @@ fun LaunchVideo(modifier: Int)
 
 }
 
-fun PickVideo(modifier: Int) {
-
-    val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
-        addCategory(Intent.CATEGORY_OPENABLE)
-        // type = "application/pdf"
-        type = "*/*"
-        // Optionally, specify a URI for the file that should appear in the
-        // system file picker when it loads.
-        // putExtra(DocumentsContract.EXTRA_INITIAL_URI, 0)
-    }
-    // startActivityForResult()
-    // startActivityFromFragment(intent)
-    //val activity: Activity = Activity()
-    //var chooseFile: Intent = Intent(Intent.ACTION_OPEN_DOCUMENT)
-
-    /* chooseFile = Intent.createChooser(chooseFile, "Choose a file")
-    startActivityForResult(activity, chooseFile)
-    val uri: Uri = Uri.fromFile(data.toString())
-    val src = uri.path */
-}
-fun PickVideo(activity: Activity, modifier: Int) {
+fun PickVideo(modifier: Int, activity: Activity) {
     val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
         addCategory(Intent.CATEGORY_OPENABLE)
         type = "video/*" // Set the type to video files
