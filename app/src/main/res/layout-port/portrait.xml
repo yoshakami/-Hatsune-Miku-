@@ -1,6 +1,65 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<AbsoluteLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    android:background="#420099"
+    android:orientation="horizontal">
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+    <Button
+        android:id="@+id/video1_button"
+        android:layout_width="127dp"
+        android:layout_height="240dp"
+        android:layout_margin="5dp"
+        android:layout_x="240dp"
+        android:layout_y="0dp"
+        android:background="#20007f"
+        android:text="Pick Video 1"
+        android:textColor="@color/white"
+        android:visibility="visible"
+        tools:layout_editor_absoluteX="268dp"
+        tools:layout_editor_absoluteY="259dp"
+        tools:visibility="visible" />
+
+    <Switch
+        android:id="@+id/video1_switch"
+        android:layout_width="186dp"
+        android:layout_height="89dp"
+        android:layout_x="210dp"
+        android:layout_y="256dp"
+        android:text="Hatsune Miku"
+        android:textColor="@color/white"
+        android:visibility="visible"
+        tools:layout_editor_absoluteX="209dp"
+        tools:layout_editor_absoluteY="512dp" />
+
+    <TextView
+        android:id="@+id/video1_hour"
+        android:layout_width="187dp"
+        android:layout_height="83dp"
+        android:layout_x="0dp"
+        android:layout_y="256dp"
+        android:gravity="center"
+        android:text="07:03"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        android:visibility="visible"
+        tools:layout_editor_absoluteX="16dp"
+        tools:layout_editor_absoluteY="512dp" />
+
+    <ImageView
+        android:id="@+id/video1_miku"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_x="0dp"
+        android:layout_y="0dp"
+        android:src="@mipmap/ic_channel_foreground"
+        tools:layout_editor_absoluteX="16dp"
+        tools:layout_editor_absoluteY="259dp" />
+    <VideoView
+        android:id="@+id/video1_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"/>
+
+</AbsoluteLayout>

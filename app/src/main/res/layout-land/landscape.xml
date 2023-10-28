@@ -43,11 +43,17 @@
         android:visibility="visible" />
 
     <ImageView
-        android:id="@+id/imageView2"
+        android:id="@+id/video1_miku"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_x="0dp"
         android:layout_y="0dp"
         android:src="@mipmap/ic_channel_foreground" />
+
+    <VideoView
+        android:id="@+id/video1_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:visibility="gone"/>
 
 </AbsoluteLayout>
