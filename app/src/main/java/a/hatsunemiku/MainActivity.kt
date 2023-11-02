@@ -10,6 +10,7 @@ import android.net.Uri
 import android.os.Bundle
 import android.provider.MediaStore
 import android.util.Log
+import android.view.View.VISIBLE
 import android.widget.Button
 import android.widget.VideoView
 import androidx.activity.ComponentActivity
@@ -51,6 +52,7 @@ class MainActivity : ComponentActivity() {
 
                         // Example: Display the video in a VideoView
                         val videoView = findViewById<VideoView>(R.id.video1_view)
+                        videoView.visibility = VISIBLE;
                         videoView.setVideoURI(selectedVideoUri)
                         videoView.start()
                     } else {
