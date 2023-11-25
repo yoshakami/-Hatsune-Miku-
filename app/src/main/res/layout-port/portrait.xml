@@ -56,10 +56,11 @@
         android:src="@mipmap/ic_channel_foreground"
         tools:layout_editor_absoluteX="16dp"
         tools:layout_editor_absoluteY="259dp" />
+
     <VideoView
         android:id="@+id/video1_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"/>
+        android:visibility="gone" />
 
 </AbsoluteLayout>

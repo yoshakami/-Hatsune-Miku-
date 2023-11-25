@@ -23,15 +23,38 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
+import android.widget.Toast
+import androidx.core.content.ContextCompat
 
+import android.content.SharedPreferences
+import android.view.View.GONE
 
 class MainActivity : ComponentActivity() {
+
     private lateinit var videoPickerLauncher: ActivityResultLauncher<Intent>
     private var videoPosition: Int = 0 // Variable to store video position
     private var isVideoPlaying: Boolean = false
+    private lateinit var sharedPreferences: SharedPreferences
 
+    // Use this constant for the storage permission request code
+    private val STORAGE_PERMISSION_REQUEST_CODE = 123
+
+    // Use this variable to track if the permission has been granted
+    private var storagePermissionGranted = false
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Check if the app has storage permissions
+        if (checkStoragePermission()) {
+            // Storage permission is already granted
+            storagePermissionGranted = true
+            // Continue with your app initialization or functionality
+        } else {
+            // Request storage permission
+            requestStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
+        }
 
         // Set the content view based on the initial orientation
         if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -46,6 +69,23 @@ class MainActivity : ComponentActivity() {
             Log.d("BUTTONS", "User tapped the Supabutton")
             PickVideo(0)
         }
+        // Set up SharedPreferences
+        sharedPreferences = getPreferences(MODE_PRIVATE)
+
+        if (storagePermissionGranted)
+        {
+            // Retrieve saved video URI
+            val savedVideoUriString = sharedPreferences.getString("videoUri", null)
+            if (savedVideoUriString != null) {
+                val savedVideoUri = Uri.parse(savedVideoUriString)
+                videoView.visibility = VideoView.VISIBLE
+                videoView.setVideoURI(savedVideoUri)
+                isVideoPlaying = true
+                videoView.start()
+            }
+        }
+
+
 
         videoPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
@@ -54,17 +94,62 @@ class MainActivity : ComponentActivity() {
                     val selectedVideoUri: Uri? = data.data
                     if (selectedVideoUri != null) {
                         Log.d("PICK_VIDEO", "Selected video URI: $selectedVideoUri")
-                        videoView.visibility = View.VISIBLE
+                        // Save the selected video URI
+                        saveVideoUri(selectedVideoUri)
+                        videoView.visibility = VideoView.VISIBLE
                         videoView.setVideoURI(selectedVideoUri)
-
-                        if (isVideoPlaying) {
-                            videoView.start()
-                        }
+                        isVideoPlaying = true
+                        videoView.start()
                     } else {
                         Log.d("PICK_VIDEO", "No video URI selected")
                     }
                 }
             }
+        }
+    }
+
+    private fun checkStoragePermission(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        } else {
+            true // Permissions are automatically granted on versions lower than Marshmallow
+        }
+    }
+
+    private val requestStoragePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission granted
+                storagePermissionGranted = true
+                // Continue with your app initialization or functionality
+            } else {
+                // Permission denied
+                Toast.makeText(
+                    this,
+                    "Storage permission is required for the app to function properly.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                // Handle the case where the user denied the permission
+            }
+        }
+
+    private fun saveVideoUri(videoUri: Uri) {
+        // Save the video URI to SharedPreferences
+        val editor = sharedPreferences.edit()
+        editor.putString("videoUri", videoUri.toString())
+        editor.apply()
+    }
+
+    private fun getSavedVideoUri(): Uri? {
+        // Retrieve the saved video URI from SharedPreferences
+        val savedVideoUriString = sharedPreferences.getString("videoUri", null)
+        return if (savedVideoUriString != null) {
+            Uri.parse(savedVideoUriString)
+        } else {
+            null
         }
     }
 
@@ -89,8 +174,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+        var videoView = findViewById<VideoView>(R.id.video1_view)
         // Save the current video position before changing the layout
-        videoPosition = getCurrentVideoPosition()
+        videoPosition = videoView.currentPosition
 
         // Set the new layout based on orientation
         if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -98,29 +184,21 @@ class MainActivity : ComponentActivity() {
         } else {
             setContentView(R.layout.landscape)
         }
-
+        videoView = findViewById<VideoView>(R.id.video1_view)
+        val PickVideoButton = findViewById<Button>(R.id.video1_button)
+        PickVideoButton.visibility = GONE;
+        videoView.visibility = VISIBLE
         // Restore the video position after changing the layout
-        restoreVideoPosition()
-
-        findViewById<Button>(R.id.video1_button).setOnClickListener {
-            Log.d("BUTTONS", "User tapped the Supabutton")
-            PickVideo(0)
-        }
-    }
-
-    // Helper method to get the current position of the video
-    private fun getCurrentVideoPosition(): Int {
-        val videoView = findViewById<VideoView>(R.id.video1_view)
-        return videoView.currentPosition
-    }
-
-    // Helper method to restore the video position
-    private fun restoreVideoPosition() {
-        val videoView = findViewById<VideoView>(R.id.video1_view)
+        videoView.setVideoURI(getSavedVideoUri())
         videoView.seekTo(videoPosition)
 
         if (isVideoPlaying) {
             videoView.start()
+        }
+
+        findViewById<Button>(R.id.video1_button).setOnClickListener {
+            Log.d("BUTTONS", "User tapped the Supabutton")
+            PickVideo(0)
         }
     }
 }
