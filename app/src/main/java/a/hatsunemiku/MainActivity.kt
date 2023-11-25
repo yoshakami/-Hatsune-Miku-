@@ -28,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 class MainActivity : ComponentActivity() {
     private lateinit var videoPickerLauncher: ActivityResultLauncher<Intent>
     private var videoPosition: Int = 0 // Variable to store video position
+    private var isVideoPlaying: Boolean = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,32 +40,34 @@ class MainActivity : ComponentActivity() {
             setContentView(R.layout.landscape)
         }
 
+        val videoView = findViewById<VideoView>(R.id.video1_view)
+
         findViewById<Button>(R.id.video1_button).setOnClickListener {
             Log.d("BUTTONS", "User tapped the Supabutton")
             PickVideo(0)
         }
+
         videoPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 val data: Intent? = result.data
                 if (data != null) {
                     val selectedVideoUri: Uri? = data.data
                     if (selectedVideoUri != null) {
-                        // Now you can do something with the selected video URI
                         Log.d("PICK_VIDEO", "Selected video URI: $selectedVideoUri")
-
-                        // Example: Display the video in a VideoView
-                        val videoView = findViewById<VideoView>(R.id.video1_view)
-                        videoView.visibility = VISIBLE;
+                        videoView.visibility = View.VISIBLE
                         videoView.setVideoURI(selectedVideoUri)
-                        videoView.start()
+
+                        if (isVideoPlaying) {
+                            videoView.start()
+                        }
                     } else {
-                        // Handle the case where no video URI was selected
                         Log.d("PICK_VIDEO", "No video URI selected")
                     }
                 }
             }
         }
     }
+
     fun PickVideo(buttonId: Int) {
         val videoPickerIntent = Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
         videoPickerLauncher.launch(videoPickerIntent)
@@ -74,48 +77,54 @@ class MainActivity : ComponentActivity() {
         super.onSaveInstanceState(outState)
         // Save the current position of the video
         outState.putInt("videoPosition", videoPosition)
+        outState.putBoolean("isVideoPlaying", isVideoPlaying)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
         // Restore the saved position of the video
         videoPosition = savedInstanceState.getInt("videoPosition")
+        isVideoPlaying = savedInstanceState.getBoolean("isVideoPlaying")
     }
 
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-            // Save the current video position before changing the layout
-            videoPosition = getCurrentVideoPosition()
+        // Save the current video position before changing the layout
+        videoPosition = getCurrentVideoPosition()
 
-            // Set the new layout based on orientation
-            if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
-                setContentView(R.layout.portrait)
-            } else {
-                setContentView(R.layout.landscape)
-            }
+        // Set the new layout based on orientation
+        if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+            setContentView(R.layout.portrait)
+        } else {
+            setContentView(R.layout.landscape)
+        }
 
-            // Restore the video position after changing the layout
-            restoreVideoPosition()
+        // Restore the video position after changing the layout
+        restoreVideoPosition()
 
-            findViewById<Button>(R.id.video1_button).setOnClickListener {
-                android.util.Log.d("BUTTONS", "User tapped the Supabutton")
-                PickVideo(0)
-            }
+        findViewById<Button>(R.id.video1_button).setOnClickListener {
+            Log.d("BUTTONS", "User tapped the Supabutton")
+            PickVideo(0)
+        }
     }
 
     // Helper method to get the current position of the video
     private fun getCurrentVideoPosition(): Int {
-        // Implement this based on your video view, for example:
-        // return videoView.currentPosition
-        return 0
+        val videoView = findViewById<VideoView>(R.id.video1_view)
+        return videoView.currentPosition
     }
 
     // Helper method to restore the video position
     private fun restoreVideoPosition() {
-        // Implement this based on your video view, for example:
-        findViewById<VideoView>(R.id.video1_view).seekTo(videoPosition)
+        val videoView = findViewById<VideoView>(R.id.video1_view)
+        videoView.seekTo(videoPosition)
+
+        if (isVideoPlaying) {
+            videoView.start()
+        }
     }
 }
+
 
 @Composable
 fun HatsuneMikuApp() {
