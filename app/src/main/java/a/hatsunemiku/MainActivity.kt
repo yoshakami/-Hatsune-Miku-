@@ -30,8 +30,15 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat
 import android.provider.Settings
 import android.content.SharedPreferences
+import android.database.Cursor
+import android.os.Environment
 import android.view.View.GONE
 import androidx.annotation.RequiresApi
+import java.util.Random
+import android.content.ContentResolver
+import android.view.View
+import android.view.WindowManager
+import java.util.*
 
 class MainActivity : ComponentActivity() {
 
@@ -105,14 +112,14 @@ class MainActivity : ComponentActivity() {
 
         if (ContextCompat.checkSelfPermission(
                 this,
-                Manifest.permission.READ_EXTERNAL_STORAGE
+                Manifest.permission.READ_MEDIA_VIDEO
             ) == PackageManager.PERMISSION_GRANTED
         ) {
             // If permission is granted, handle accordingly
             handleStoragePermissionGranted()
         } else {
             // If permission is not granted, request it
-            requestStoragePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+            requestStoragePermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO)
         }
         // Set the content view based on the initial orientation
         if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
@@ -129,6 +136,8 @@ class MainActivity : ComponentActivity() {
         }
         // Set up SharedPreferences
         sharedPreferences = getPreferences(MODE_PRIVATE)
+        openRandomVideoInMovieFolder()
+        /*
         //storagePermissionGranted = true
             // Retrieve saved video URI
             val savedVideoUriString = sharedPreferences.getString("videoUri", null)
@@ -148,7 +157,7 @@ class MainActivity : ComponentActivity() {
             } else {
                 // If permission is not granted, request it
                 requestStoragePermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO)
-            }
+            } */
 
 
 
@@ -172,6 +181,81 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+    private fun openRandomVideoInMovieFolder() {
+        // Make the app fullscreen
+        window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_IMMERSIVE
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                )
+
+        // Keep the screen on
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+
+        val PickVideoButton = findViewById<Button>(R.id.video1_button)
+        PickVideoButton.visibility = GONE;
+        val videoView = findViewById<VideoView>(R.id.video1_view)
+        // Specify the folder path
+        val folderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).absolutePath
+
+        // Get a list of files in the folder
+        val fileList = getFilesInFolder(folderPath)
+
+        // Select a random file from the list
+        val random = Random()
+        val randomFile = fileList[random.nextInt(fileList.size)]
+
+        // Play the selected video file
+        // Set the video URI and start playing
+        val videoUri = Uri.parse(randomFile)
+        isVideoPlaying = true
+
+        saveVideoUri(videoUri)
+        videoView.visibility = VideoView.VISIBLE
+        videoView.setVideoURI(videoUri)
+        videoView.start()
+    }
+    private fun getFilesInFolder(folderPath: String): List<String> {
+        val fileList = mutableListOf<String>()
+
+        val contentResolver: ContentResolver = contentResolver
+
+        val uri: Uri = MediaStore.Files.getContentUri("external")
+
+        val projection = arrayOf(
+            MediaStore.Files.FileColumns._ID,
+            MediaStore.Files.FileColumns.DATA
+        )
+
+        val selection =
+            MediaStore.Files.FileColumns.MEDIA_TYPE + "=" + MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO +
+                    " AND " + MediaStore.Files.FileColumns.DATA + " LIKE ?"
+
+        val selectionArgs = arrayOf("$folderPath/%")
+
+        val sortOrder = MediaStore.Files.FileColumns.DATE_ADDED + " DESC"
+
+        val cursor: Cursor? = contentResolver.query(
+            uri,
+            projection,
+            selection,
+            selectionArgs,
+            sortOrder
+        )
+
+        cursor?.use {
+            while (it.moveToNext()) {
+                val filePath =
+                    it.getString(it.getColumnIndex(MediaStore.Files.FileColumns.DATA))
+                fileList.add(filePath)
+            }
+        }
+
+        return fileList
     }
     private fun requestManageExternalStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
