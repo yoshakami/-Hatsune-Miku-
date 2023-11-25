@@ -27,6 +27,8 @@ import androidx.compose.ui.tooling.preview.Preview
 
 class MainActivity : ComponentActivity() {
     private lateinit var videoPickerLauncher: ActivityResultLauncher<Intent>
+    private var videoPosition: Int = 0 // Variable to store video position
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -68,16 +70,51 @@ class MainActivity : ComponentActivity() {
         videoPickerLauncher.launch(videoPickerIntent)
     }
 
-    override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        if (newConfig.orientation === Configuration.ORIENTATION_PORTRAIT) {
-            setContentView(R.layout.portrait)
-        } else if (newConfig.orientation === Configuration.ORIENTATION_LANDSCAPE) {
-            setContentView(R.layout.landscape)
-        }
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        // Save the current position of the video
+        outState.putInt("videoPosition", videoPosition)
     }
 
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        // Restore the saved position of the video
+        videoPosition = savedInstanceState.getInt("videoPosition")
+    }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+            // Save the current video position before changing the layout
+            videoPosition = getCurrentVideoPosition()
+
+            // Set the new layout based on orientation
+            if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
+                setContentView(R.layout.portrait)
+            } else {
+                setContentView(R.layout.landscape)
+            }
+
+            // Restore the video position after changing the layout
+            restoreVideoPosition()
+
+            findViewById<Button>(R.id.video1_button).setOnClickListener {
+                android.util.Log.d("BUTTONS", "User tapped the Supabutton")
+                PickVideo(0)
+            }
+    }
+
+    // Helper method to get the current position of the video
+    private fun getCurrentVideoPosition(): Int {
+        // Implement this based on your video view, for example:
+        // return videoView.currentPosition
+        return 0
+    }
+
+    // Helper method to restore the video position
+    private fun restoreVideoPosition() {
+        // Implement this based on your video view, for example:
+        findViewById<VideoView>(R.id.video1_view).seekTo(videoPosition)
+    }
 }
 
 @Composable
