@@ -28,9 +28,10 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.widget.Toast
 import androidx.core.content.ContextCompat
-
+import android.provider.Settings
 import android.content.SharedPreferences
 import android.view.View.GONE
+import androidx.annotation.RequiresApi
 
 class MainActivity : ComponentActivity() {
 
@@ -39,23 +40,80 @@ class MainActivity : ComponentActivity() {
     private var isVideoPlaying: Boolean = false
     private lateinit var sharedPreferences: SharedPreferences
 
-    // Use this constant for the storage permission request code
-    private val STORAGE_PERMISSION_REQUEST_CODE = 123
-
     // Use this variable to track if the permission has been granted
     private var storagePermissionGranted = false
+
+    private val pickVideoLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                val data: Intent? = result.data
+                if (data != null) {
+                    val selectedVideoUri = data.data
+                    if (selectedVideoUri != null) {
+                        val videoView = findViewById<VideoView>(R.id.video1_view)
+                        videoView.visibility = VideoView.VISIBLE
+                        isVideoPlaying = true
+                        videoView.setVideoURI(selectedVideoUri)
+                        videoView.start()
+                        saveVideoUri(selectedVideoUri)
+                    }
+                }
+            }
+        }
+    private val requestStoragePermissionLauncher =
+            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+                if (isGranted) {
+                    // Permission granted
+                    launchSAFPickVideoIntent()
+                    handleStoragePermissionGranted()
+                    storagePermissionGranted = true
+                    // Continue with your app initialization or functionality
+                } else {
+                    // Permission denied
+                    requestManageExternalStoragePermission()
+                    Toast.makeText(
+                        this,
+                        "Storage permission is required for the app to function properly.",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                    // Handle the case where the user denied the permission
+                }
+            }
+
+    private val requestManageExternalStoragePermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+            if (result.resultCode == RESULT_OK) {
+                // User granted MANAGE_EXTERNAL_STORAGE permission
+                handleStoragePermissionGranted()
+            } else {
+                // User denied MANAGE_EXTERNAL_STORAGE permission
+                // Handle accordingly
+            }
+        }
+    @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Check if the app has storage permissions
-        if (checkStoragePermission()) {
+        /*if (checkStoragePermission()) {
             // Storage permission is already granted
             storagePermissionGranted = true
             // Continue with your app initialization or functionality
         } else {
             // Request storage permission
             requestStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
-        }
+        }*/
 
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            // If permission is granted, handle accordingly
+            handleStoragePermissionGranted()
+        } else {
+            // If permission is not granted, request it
+            requestStoragePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
         // Set the content view based on the initial orientation
         if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
             setContentView(R.layout.portrait)
@@ -71,9 +129,7 @@ class MainActivity : ComponentActivity() {
         }
         // Set up SharedPreferences
         sharedPreferences = getPreferences(MODE_PRIVATE)
-
-        if (storagePermissionGranted)
-        {
+        //storagePermissionGranted = true
             // Retrieve saved video URI
             val savedVideoUriString = sharedPreferences.getString("videoUri", null)
             if (savedVideoUriString != null) {
@@ -82,8 +138,18 @@ class MainActivity : ComponentActivity() {
                 videoView.setVideoURI(savedVideoUri)
                 isVideoPlaying = true
                 videoView.start()
+            } else if (ContextCompat.checkSelfPermission(
+                    this,
+                    Manifest.permission.READ_MEDIA_VIDEO
+                ) == PackageManager.PERMISSION_GRANTED
+            ) {
+                // If permission is granted, launch the SAF pick video intent
+                launchSAFPickVideoIntent()
+            } else {
+                // If permission is not granted, request it
+                requestStoragePermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO)
             }
-        }
+
 
 
 
@@ -107,6 +173,26 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+    private fun requestManageExternalStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+            intent.data = Uri.parse("package:$packageName")
+            requestManageExternalStoragePermissionLauncher.launch(intent)
+        }
+    }
+
+    private fun handleStoragePermissionGranted() {
+        // Your logic for handling full storage access
+        // This is where you can perform operations that require full storage access
+    }
+
+    private fun launchSAFPickVideoIntent() {
+        val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
+            addCategory(Intent.CATEGORY_OPENABLE)
+            type = "video/*" // Specify the MIME type of videos you want to allow
+        }
+        pickVideoLauncher.launch(intent)
+    }
 
     private fun checkStoragePermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -119,22 +205,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private val requestStoragePermissionLauncher =
-        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-            if (isGranted) {
-                // Permission granted
-                storagePermissionGranted = true
-                // Continue with your app initialization or functionality
-            } else {
-                // Permission denied
-                Toast.makeText(
-                    this,
-                    "Storage permission is required for the app to function properly.",
-                    Toast.LENGTH_SHORT
-                ).show()
-                // Handle the case where the user denied the permission
-            }
-        }
+
 
     private fun saveVideoUri(videoUri: Uri) {
         // Save the video URI to SharedPreferences
