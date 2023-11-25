@@ -1,5 +1,6 @@
 package a.hatsunemiku
 
+import VideoPlayReceiver
 import a.hatsunemiku.ui.theme.HatsuneMikuTheme
 import android.app.Activity
 import android.content.Intent
@@ -39,9 +40,15 @@ import android.content.ContentResolver
 import android.view.View
 import android.view.WindowManager
 import java.util.*
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
+import android.os.PowerManager
 
 class MainActivity : ComponentActivity() {
 
+    private lateinit var videoView: VideoView
+    private lateinit var wakeLock: PowerManager.WakeLock
     private lateinit var videoPickerLauncher: ActivityResultLauncher<Intent>
     private var videoPosition: Int = 0 // Variable to store video position
     private var isVideoPlaying: Boolean = false
@@ -97,6 +104,7 @@ class MainActivity : ComponentActivity() {
                 // Handle accordingly
             }
         }
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -109,7 +117,11 @@ class MainActivity : ComponentActivity() {
             // Request storage permission
             requestStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }*/
+        // Acquire wake lock
+        acquireWakeLock()
 
+        // Schedule video playback at 00:35
+        scheduleVideoPlayback()
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_MEDIA_VIDEO
@@ -136,7 +148,7 @@ class MainActivity : ComponentActivity() {
         }
         // Set up SharedPreferences
         sharedPreferences = getPreferences(MODE_PRIVATE)
-        openRandomVideoInMovieFolder()
+        // openRandomVideoInMovieFolder()
         /*
         //storagePermissionGranted = true
             // Retrieve saved video URI
@@ -182,7 +194,53 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-    private fun openRandomVideoInMovieFolder() {
+    private fun acquireWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "YourApp:WakeLock"
+        )
+        wakeLock.acquire()
+    }
+
+    private fun releaseWakeLock() {
+        if (wakeLock.isHeld) {
+            wakeLock.release()
+        }
+    }
+
+    private fun scheduleVideoPlayback() {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        // Set the time to 00:35
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 35)
+            set(Calendar.SECOND, 0)
+        }
+
+        val intent = Intent(this, VideoPlayReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            0,
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT
+        )
+
+        // Schedule the alarm
+        alarmManager.setExact(
+            AlarmManager.RTC_WAKEUP,
+            calendar.timeInMillis,
+            pendingIntent
+        )
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Release wake lock when the activity is destroyed
+        releaseWakeLock()
+    }
+    fun openRandomVideoInMovieFolder() {
         // Make the app fullscreen
         window.decorView.systemUiVisibility = (
                 View.SYSTEM_UI_FLAG_IMMERSIVE
