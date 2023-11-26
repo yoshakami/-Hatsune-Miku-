@@ -1,6 +1,5 @@
 package a.hatsunemiku
 
-import VideoPlayReceiver
 import a.hatsunemiku.ui.theme.HatsuneMikuTheme
 import android.app.Activity
 import android.content.Intent
@@ -47,8 +46,9 @@ import android.os.PowerManager
 
 class MainActivity : ComponentActivity() {
 
-    private lateinit var videoView: VideoView
-    private lateinit var wakeLock: PowerManager.WakeLock
+    //private lateinit var videoView: VideoView
+
+
     private lateinit var videoPickerLauncher: ActivityResultLauncher<Intent>
     private var videoPosition: Int = 0 // Variable to store video position
     private var isVideoPlaying: Boolean = false
@@ -57,7 +57,7 @@ class MainActivity : ComponentActivity() {
     // Use this variable to track if the permission has been granted
     private var storagePermissionGranted = false
 
-    private val pickVideoLauncher =
+    /*private val pickVideoLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 val data: Intent? = result.data
@@ -73,26 +73,27 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }
+        }*/
+
     private val requestStoragePermissionLauncher =
-            registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
-                if (isGranted) {
-                    // Permission granted
-                    launchSAFPickVideoIntent()
-                    handleStoragePermissionGranted()
-                    storagePermissionGranted = true
-                    // Continue with your app initialization or functionality
-                } else {
-                    // Permission denied
-                    requestManageExternalStoragePermission()
-                    Toast.makeText(
-                        this,
-                        "Storage permission is required for the app to function properly.",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                    // Handle the case where the user denied the permission
-                }
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
+            if (isGranted) {
+                // Permission granted
+                // launchSAFPickVideoIntent()
+                handleStoragePermissionGranted()
+                storagePermissionGranted = true
+                // Continue with your app initialization or functionality
+            } else {
+                // Permission denied
+                requestManageExternalStoragePermission()
+                Toast.makeText(
+                    this,
+                    "Storage permission is required for the app to function properly.",
+                    Toast.LENGTH_SHORT
+                ).show()
+                // Handle the case where the user denied the permission
             }
+        }
 
     private val requestManageExternalStoragePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -117,11 +118,6 @@ class MainActivity : ComponentActivity() {
             // Request storage permission
             requestStoragePermissionLauncher.launch(Manifest.permission.WRITE_EXTERNAL_STORAGE)
         }*/
-        // Acquire wake lock
-        acquireWakeLock()
-
-        // Schedule video playback at 00:35
-        scheduleVideoPlayback()
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_MEDIA_VIDEO
@@ -139,6 +135,13 @@ class MainActivity : ComponentActivity() {
         } else {
             setContentView(R.layout.landscape)
         }
+
+        // Acquire wake lock
+        //acquireWakeLock()
+        scheduleWakeUp()
+
+        // Schedule video playback at 00:35
+        //scheduleVideoPlayback()
 
         val videoView = findViewById<VideoView>(R.id.video1_view)
 
@@ -173,37 +176,90 @@ class MainActivity : ComponentActivity() {
 
 
 
-
-        videoPickerLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-            if (result.resultCode == RESULT_OK) {
-                val data: Intent? = result.data
-                if (data != null) {
-                    val selectedVideoUri: Uri? = data.data
-                    if (selectedVideoUri != null) {
-                        Log.d("PICK_VIDEO", "Selected video URI: $selectedVideoUri")
-                        // Save the selected video URI
-                        saveVideoUri(selectedVideoUri)
-                        videoView.visibility = VideoView.VISIBLE
-                        videoView.setVideoURI(selectedVideoUri)
-                        isVideoPlaying = true
-                        videoView.start()
-                    } else {
-                        Log.d("PICK_VIDEO", "No video URI selected")
+        /*
+        videoPickerLauncher =
+            registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+                if (result.resultCode == RESULT_OK) {
+                    val data: Intent? = result.data
+                    if (data != null) {
+                        val selectedVideoUri: Uri? = data.data
+                        if (selectedVideoUri != null) {
+                            Log.d("PICK_VIDEO", "Selected video URI: $selectedVideoUri")
+                            // Save the selected video URI
+                            saveVideoUri(selectedVideoUri)
+                            videoView.visibility = VideoView.VISIBLE
+                            videoView.setVideoURI(selectedVideoUri)
+                            isVideoPlaying = true
+                            videoView.start()
+                        } else {
+                            Log.d("PICK_VIDEO", "No video URI selected")
+                        }
                     }
                 }
-            }
+            }*/
+    }
+    private val ALARM_INTERVAL_MS = 10000 // 10 sec interval for demonstration
+
+    fun scheduleWakeUp() {
+        val alarmManager = this.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val alarmIntent = Intent(this, AlarmReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            0,
+            alarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + ALARM_INTERVAL_MS,
+                pendingIntent
+            )
+        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + ALARM_INTERVAL_MS,
+                pendingIntent
+            )
+        } else {
+            alarmManager.set(
+                AlarmManager.RTC_WAKEUP,
+                System.currentTimeMillis() + ALARM_INTERVAL_MS,
+                pendingIntent
+            )
         }
+    }
+
+    fun cancelWakeUp() {
+        val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
+
+        val alarmIntent = Intent(this, Video::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            this,
+            0,
+            alarmIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE
+        )
+
+        alarmManager.cancel(pendingIntent)
     }
     private fun acquireWakeLock() {
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
-        wakeLock = powerManager.newWakeLock(
+        val wakeLock = powerManager.newWakeLock(
             PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
             "YourApp:WakeLock"
         )
-        wakeLock.acquire()
+        wakeLock.acquire(10*60*1000L /*10 minutes*/)
     }
 
     private fun releaseWakeLock() {
+        val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
+        val wakeLock = powerManager.newWakeLock(
+            PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
+            "YourApp:WakeLock"
+        )
         if (wakeLock.isHeld) {
             wakeLock.release()
         }
@@ -212,109 +268,47 @@ class MainActivity : ComponentActivity() {
     private fun scheduleVideoPlayback() {
         val alarmManager = getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-        // Set the time to 00:35
+        // Set the time to 01:00
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 35)
-            set(Calendar.SECOND, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 10)
         }
 
-        val intent = Intent(this, VideoPlayReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
+        // Schedule the alarm for the next day at 01:00
+        val intent = Intent(this, Video::class.java)
+        val pendingIntent = PendingIntent.getActivity(
             this,
             0,
             intent,
-            PendingIntent.FLAG_UPDATE_CURRENT
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_MUTABLE // Use FLAG_MUTABLE
         )
 
-        // Schedule the alarm
-        alarmManager.setExact(
-            AlarmManager.RTC_WAKEUP,
-            calendar.timeInMillis,
-            pendingIntent
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+        } else {
+            alarmManager.setExact(
+                AlarmManager.RTC_WAKEUP,
+                calendar.timeInMillis,
+                pendingIntent
+            )
+        }
     }
+
+
 
     override fun onDestroy() {
         super.onDestroy()
         // Release wake lock when the activity is destroyed
         releaseWakeLock()
     }
-    fun openRandomVideoInMovieFolder() {
-        // Make the app fullscreen
-        window.decorView.systemUiVisibility = (
-                View.SYSTEM_UI_FLAG_IMMERSIVE
-                        or View.SYSTEM_UI_FLAG_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
-                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
-                )
 
-        // Keep the screen on
-        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
-        val PickVideoButton = findViewById<Button>(R.id.video1_button)
-        PickVideoButton.visibility = GONE;
-        val videoView = findViewById<VideoView>(R.id.video1_view)
-        // Specify the folder path
-        val folderPath = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES).absolutePath
 
-        // Get a list of files in the folder
-        val fileList = getFilesInFolder(folderPath)
-
-        // Select a random file from the list
-        val random = Random()
-        val randomFile = fileList[random.nextInt(fileList.size)]
-
-        // Play the selected video file
-        // Set the video URI and start playing
-        val videoUri = Uri.parse(randomFile)
-        isVideoPlaying = true
-
-        saveVideoUri(videoUri)
-        videoView.visibility = VideoView.VISIBLE
-        videoView.setVideoURI(videoUri)
-        videoView.start()
-    }
-    private fun getFilesInFolder(folderPath: String): List<String> {
-        val fileList = mutableListOf<String>()
-
-        val contentResolver: ContentResolver = contentResolver
-
-        val uri: Uri = MediaStore.Files.getContentUri("external")
-
-        val projection = arrayOf(
-            MediaStore.Files.FileColumns._ID,
-            MediaStore.Files.FileColumns.DATA
-        )
-
-        val selection =
-            MediaStore.Files.FileColumns.MEDIA_TYPE + "=" + MediaStore.Files.FileColumns.MEDIA_TYPE_VIDEO +
-                    " AND " + MediaStore.Files.FileColumns.DATA + " LIKE ?"
-
-        val selectionArgs = arrayOf("$folderPath/%")
-
-        val sortOrder = MediaStore.Files.FileColumns.DATE_ADDED + " DESC"
-
-        val cursor: Cursor? = contentResolver.query(
-            uri,
-            projection,
-            selection,
-            selectionArgs,
-            sortOrder
-        )
-
-        cursor?.use {
-            while (it.moveToNext()) {
-                val filePath =
-                    it.getString(it.getColumnIndex(MediaStore.Files.FileColumns.DATA))
-                fileList.add(filePath)
-            }
-        }
-
-        return fileList
-    }
     private fun requestManageExternalStoragePermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
@@ -327,7 +321,7 @@ class MainActivity : ComponentActivity() {
         // Your logic for handling full storage access
         // This is where you can perform operations that require full storage access
     }
-
+/*
     private fun launchSAFPickVideoIntent() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -335,6 +329,8 @@ class MainActivity : ComponentActivity() {
         }
         pickVideoLauncher.launch(intent)
     }
+    */
+ */
 
     private fun checkStoragePermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -349,13 +345,6 @@ class MainActivity : ComponentActivity() {
 
 
 
-    private fun saveVideoUri(videoUri: Uri) {
-        // Save the video URI to SharedPreferences
-        val editor = sharedPreferences.edit()
-        editor.putString("videoUri", videoUri.toString())
-        editor.apply()
-    }
-
     private fun getSavedVideoUri(): Uri? {
         // Retrieve the saved video URI from SharedPreferences
         val savedVideoUriString = sharedPreferences.getString("videoUri", null)
@@ -367,7 +356,8 @@ class MainActivity : ComponentActivity() {
     }
 
     fun PickVideo(buttonId: Int) {
-        val videoPickerIntent = Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
+        val videoPickerIntent =
+            Intent(Intent.ACTION_PICK, MediaStore.Video.Media.EXTERNAL_CONTENT_URI)
         videoPickerLauncher.launch(videoPickerIntent)
     }
 
@@ -384,13 +374,13 @@ class MainActivity : ComponentActivity() {
         videoPosition = savedInstanceState.getInt("videoPosition")
         isVideoPlaying = savedInstanceState.getBoolean("isVideoPlaying")
     }
-
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
+
+
         var videoView = findViewById<VideoView>(R.id.video1_view)
         // Save the current video position before changing the layout
         videoPosition = videoView.currentPosition
-
         // Set the new layout based on orientation
         if (newConfig.orientation == Configuration.ORIENTATION_PORTRAIT) {
             setContentView(R.layout.portrait)
@@ -437,8 +427,8 @@ fun Greeting(name: String, modifier: Modifier = Modifier) {
         modifier = modifier
     )
 }
-fun LaunchVideo(modifier: Int)
-{
+
+fun LaunchVideo(modifier: Int) {
     val mediaPlayer = MediaPlayer().apply {
         setAudioAttributes(
             AudioAttributes.Builder()
