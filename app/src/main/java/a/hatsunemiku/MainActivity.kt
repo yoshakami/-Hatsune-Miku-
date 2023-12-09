@@ -32,11 +32,17 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.core.content.ContextCompat
 import a.hatsunemiku.ui.theme.HatsuneMikuTheme
+import android.os.Environment
+import android.view.View
+import android.widget.MediaController
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.activity.result.ActivityResultLauncher
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.FileProvider
+import java.io.File
 
 class MainActivity : ComponentActivity() {
 
@@ -51,7 +57,7 @@ class MainActivity : ComponentActivity() {
     // Use this variable to track if the permission has been granted
     private var storagePermissionGranted = false
 
-    /*private val pickVideoLauncher =
+    private val pickVideoLauncher =
         registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
             if (result.resultCode == RESULT_OK) {
                 val data: Intent? = result.data
@@ -67,7 +73,7 @@ class MainActivity : ComponentActivity() {
                     }
                 }
             }
-        }*/
+        }
 
     private val requestStoragePermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { isGranted: Boolean ->
@@ -76,16 +82,18 @@ class MainActivity : ComponentActivity() {
                 // launchSAFPickVideoIntent()
                 handleStoragePermissionGranted()
                 storagePermissionGranted = true
+                Log.d("INFO", "permission granted")
                 // Continue with your app initialization or functionality
             } else {
                 // Permission denied
-                requestManageExternalStoragePermission()
+                Log.d("INFO", "permission denied")
+            /*
                 Toast.makeText(
                     this,
                     "Storage permission is required for the app to function properly.",
                     Toast.LENGTH_SHORT
                 ).show()
-                // Handle the case where the user denied the permission
+                // Handle the case where the user denied the permission*/
             }
         }
 
@@ -100,11 +108,24 @@ class MainActivity : ComponentActivity() {
             }
         }
 
+    fun fullscreen() {
+        // Make the app fullscreen
+        window.decorView.systemUiVisibility = (
+                View.SYSTEM_UI_FLAG_IMMERSIVE
+                        or View.SYSTEM_UI_FLAG_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+                        or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+                        or View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
+                        or View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION
+                )
+    }
+
     @RequiresApi(Build.VERSION_CODES.TIRAMISU)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Check if the app has storage permissions
-        /*if (checkStoragePermission()) {
+        /*
+        if (checkStoragePermission()) {
             // Storage permission is already granted
             storagePermissionGranted = true
             // Continue with your app initialization or functionality
@@ -115,14 +136,32 @@ class MainActivity : ComponentActivity() {
         if (ContextCompat.checkSelfPermission(
                 this,
                 Manifest.permission.READ_MEDIA_VIDEO
-            ) == PackageManager.PERMISSION_GRANTED
+            ) != PackageManager.PERMISSION_GRANTED
         ) {
-            // If permission is granted, handle accordingly
-            handleStoragePermissionGranted()
-        } else {
-            // If permission is not granted, request it
             requestStoragePermissionLauncher.launch(Manifest.permission.READ_MEDIA_VIDEO)
         }
+
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.MANAGE_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestStoragePermissionLauncher.launch(Manifest.permission.MANAGE_EXTERNAL_STORAGE)
+            requestManageExternalStoragePermission()
+        }
+        if (ContextCompat.checkSelfPermission(
+                this,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            ) != PackageManager.PERMISSION_GRANTED
+        ) {
+            requestStoragePermissionLauncher.launch(Manifest.permission.READ_EXTERNAL_STORAGE)
+        }
+        ActivityCompat.requestPermissions(
+                this,
+        arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE),
+        69
+        )
+
         // Set the content view based on the initial orientation
         if (resources.configuration.orientation == Configuration.ORIENTATION_PORTRAIT) {
             setContentView(R.layout.portrait)
@@ -132,10 +171,10 @@ class MainActivity : ComponentActivity() {
 
         // Acquire wake lock
         //acquireWakeLock()
-        scheduleWakeUp()
+        // scheduleWakeUp()
 
         // Schedule video playback at 00:35
-        //scheduleVideoPlayback()
+        // scheduleVideoPlayback()
 
         val videoView = findViewById<VideoView>(R.id.video1_view)
 
@@ -145,6 +184,37 @@ class MainActivity : ComponentActivity() {
         }
         // Set up SharedPreferences
         sharedPreferences = getPreferences(MODE_PRIVATE)
+
+        val mediaController = MediaController(this)
+        mediaController.setAnchorView(videoView)
+        videoView.setMediaController(mediaController)
+        videoView.setOnErrorListener { mp, what, extra ->
+            Log.e("VIDEO_ERROR", "MediaPlayer error: $what, $extra")
+            // Handle the error, e.g., show a message to the user
+            true
+        }
+
+        val PickVideoButton = findViewById<Button>(R.id.video1_button)
+        PickVideoButton.visibility = GONE;
+
+        val moviesDirectory = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_MOVIES)
+        val videoFile = File(moviesDirectory, "a.mp4")
+        val videoUri = FileProvider.getUriForFile(
+            this,
+            "com.android.providers.media",
+            videoFile
+        )
+        //videoView.setVideoPath(videoFile.absolutePath)
+        // Now use videoFile to set the data source
+
+        //val videoUri = Uri.parse(videoFile)
+        isVideoPlaying = true
+
+        saveVideoUri(videoUri)
+        videoView.visibility = VideoView.VISIBLE
+        videoView.setVideoURI(videoUri)
+        videoView.start()
+
         // openRandomVideoInMovieFolder()
         /*
         //storagePermissionGranted = true
@@ -170,7 +240,7 @@ class MainActivity : ComponentActivity() {
 
 
 
-        /*
+
         videoPickerLauncher =
             registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
                 if (result.resultCode == RESULT_OK) {
@@ -179,19 +249,23 @@ class MainActivity : ComponentActivity() {
                         val selectedVideoUri: Uri? = data.data
                         if (selectedVideoUri != null) {
                             Log.d("PICK_VIDEO", "Selected video URI: $selectedVideoUri")
+                            val PickVideoButton = findViewById<Button>(R.id.video1_button)
+                            PickVideoButton.visibility = View.GONE;
                             // Save the selected video URI
                             saveVideoUri(selectedVideoUri)
                             videoView.visibility = VideoView.VISIBLE
                             videoView.setVideoURI(selectedVideoUri)
                             isVideoPlaying = true
                             videoView.start()
+                            fullscreen()
                         } else {
                             Log.d("PICK_VIDEO", "No video URI selected")
                         }
                     }
                 }
-            }*/
+            }
     }
+
     private val ALARM_INTERVAL_MS = 10000 // 10 sec interval for demonstration
 
     fun scheduleWakeUp() {
@@ -239,13 +313,14 @@ class MainActivity : ComponentActivity() {
 
         alarmManager.cancel(pendingIntent)
     }
+
     private fun acquireWakeLock() {
         val powerManager = getSystemService(Context.POWER_SERVICE) as PowerManager
         val wakeLock = powerManager.newWakeLock(
             PowerManager.SCREEN_BRIGHT_WAKE_LOCK or PowerManager.ACQUIRE_CAUSES_WAKEUP,
             "YourApp:WakeLock"
         )
-        wakeLock.acquire(10*60*1000L /*10 minutes*/)
+        wakeLock.acquire(10 * 60 * 1000L /*10 minutes*/)
     }
 
     private fun releaseWakeLock() {
@@ -256,6 +331,13 @@ class MainActivity : ComponentActivity() {
         )
         if (wakeLock.isHeld) {
             wakeLock.release()
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        if (isVideoPlaying) {
+            fullscreen()
         }
     }
 
@@ -294,7 +376,6 @@ class MainActivity : ComponentActivity() {
     }
 
 
-
     override fun onDestroy() {
         super.onDestroy()
         // Release wake lock when the activity is destroyed
@@ -302,9 +383,8 @@ class MainActivity : ComponentActivity() {
     }
 
 
-
     private fun requestManageExternalStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        if (Build.VERSION.SDK_INT >= 30) {
             val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
             intent.data = Uri.parse("package:$packageName")
             requestManageExternalStoragePermissionLauncher.launch(intent)
@@ -315,7 +395,7 @@ class MainActivity : ComponentActivity() {
         // Your logic for handling full storage access
         // This is where you can perform operations that require full storage access
     }
-/*
+
     private fun launchSAFPickVideoIntent() {
         val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
             addCategory(Intent.CATEGORY_OPENABLE)
@@ -323,8 +403,7 @@ class MainActivity : ComponentActivity() {
         }
         pickVideoLauncher.launch(intent)
     }
-    */
- */
+
 
     private fun checkStoragePermission(): Boolean {
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -336,7 +415,6 @@ class MainActivity : ComponentActivity() {
             true // Permissions are automatically granted on versions lower than Marshmallow
         }
     }
-
 
 
     private fun getSavedVideoUri(): Uri? {
@@ -368,6 +446,14 @@ class MainActivity : ComponentActivity() {
         videoPosition = savedInstanceState.getInt("videoPosition")
         isVideoPlaying = savedInstanceState.getBoolean("isVideoPlaying")
     }
+
+    private fun saveVideoUri(videoUri: Uri) {
+        // Save the video URI to SharedPreferences
+        val editor = sharedPreferences.edit()
+        editor.putString("videoUri", videoUri.toString())
+        editor.apply()
+    }
+
     override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
 
@@ -391,6 +477,7 @@ class MainActivity : ComponentActivity() {
 
         if (isVideoPlaying) {
             videoView.start()
+            fullscreen()
         }
 
         findViewById<Button>(R.id.video1_button).setOnClickListener {
